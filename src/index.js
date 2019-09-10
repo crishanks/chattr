@@ -2,6 +2,7 @@ const path = require('path')
 const http = require('http')
 const express = require('express')
 const socketio = require('socket.io')
+const Filter = require('bad-words')
 
 const app = express()
 //Create http web server ourselves to pass in to socketio, since we can't do it when server is automatically configured with express
@@ -19,12 +20,18 @@ io.on('connection', (socket) => {
     // send to all connections except my connection
     socket.broadcast.emit('message', 'A new user has joined!')
     // send to all connections, including my connection
-    socket.on('sendMessage', (message) => {
+    socket.on('sendMessage', (message, callback) => {
+        const filter = new Filter()
+        if (filter.isProfane(message)) return callback('Profanity is not allowed!')
+
         io.emit('message', message)
+        callback()
     })
 
-    socket.on('sendLocation', (location) => {
+    socket.on('sendLocation', (location, callback) => {
         io.emit('message', `https://google.com/maps?q=${location.latitude},${location.longitude}`)
+        // run acknowledgement
+        callback()
     })
 
     socket.on('disconnect', () => {
